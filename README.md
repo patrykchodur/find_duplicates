@@ -19,7 +19,7 @@ any command is not available an error message is displayed.
 
 The program can run in two modes:
 
-- regular -- only printing duplicated files.
-- interactive -- user can specify whether to delete duplicated files or not.
+- regular - only printing duplicated files.
+- interactive (`-i`) - user can specify whether to delete duplicated files or not.
 
 A help message is displayed after using `-h` option.

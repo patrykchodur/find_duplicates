@@ -4,24 +4,7 @@ shopt -s globstar
 
 INTERACTIVE=false
 SEARCH_DIR="$PWD"
-# options:
-# -i - remove interactivly
-while getopts ":i" OPTION; do
-	case "$OPTION" in
-		i)
-			INTERACTIVE=true
-			;;
-		*)
-			echo Unknown option
-			;;
-	esac
-done
-
-shift $((OPTIND - 1))
-
-if [ -n "$1" ]; then
-	SEARCH_DIR="$1"
-fi
+HELP=false
 
 function print_duplicates() {
 	if [ -z "$USE_LIGHT_COLOR" ]; then
@@ -67,6 +50,42 @@ function ask_delete() {
 		esac
 	done
 }
+
+function print_usage() {
+	echo "Usage:"
+	echo "  $1 [-i] [directory] -- find duplicates in directory"
+	echo "  $1 -h               -- display this help"
+}
+
+# options:
+# -i - remove interactivly
+# -h - help
+while getopts "ih" OPTION; do
+	case "$OPTION" in
+		i)
+			INTERACTIVE=true
+			;;
+		h)
+			HELP=true
+			;;
+		*)
+			print_usage $0
+			exit 1
+			;;
+	esac
+done
+
+shift $((OPTIND - 1))
+
+if [ -n "$1" ]; then
+	SEARCH_DIR="$1"
+fi
+
+
+if [ "$HELP" = true ]; then
+	print_usage $0
+	exit 0
+fi
 
 declare -A files
 

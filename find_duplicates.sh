@@ -7,16 +7,16 @@ SEARCH_DIR="$PWD"
 HELP=false
 
 function print_duplicates() {
-	if [ -z "$USE_LIGHT_COLOR" ]; then
-		USE_LIGHT_COLOR=false
+	if [ -z "$USE_SECOND_COLOR" ]; then
+		USE_SECOND_COLOR=false
 	fi
 
-	if [ "$USE_LIGHT_COLOR" = true ]; then
+	if [ "$USE_SECOND_COLOR" = true ]; then
 		printf "%b" "\e[0;32m"
-		USE_LIGHT_COLOR=false
+		USE_SECOND_COLOR=false
 	else
 		printf "%b" "\e[0;36m"
-		USE_LIGHT_COLOR=true
+		USE_SECOND_COLOR=true
 	fi
 
 	for ARG in "$@"; do

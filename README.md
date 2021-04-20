@@ -1,4 +1,4 @@
-# find duplicates
+# find\_duplicates
 
 A simple utility to find duplicated files and optionally delete them.
 It uses `sha-1` hashing algorythm to calculate hash of files.

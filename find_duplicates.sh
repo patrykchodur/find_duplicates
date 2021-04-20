@@ -82,9 +82,13 @@ function ask_delete() {
 }
 
 function print_usage() {
-	echo "Usage:"
-	echo "  $1 [-i] [directory] -- find duplicates in directory"
-	echo "  $1 -h               -- display this help"
+	echo "Usage: $1 [OPTION]... [directory]"
+	echo "   Find duplicated files and optionally delete them."
+	echo "   If no directory is provided, current working directory will be used."
+	echo
+	echo "   Options:"
+	echo "     -i         ask user to delete duplicated files"
+	echo "     -h         display this help"
 }
 
 # options:

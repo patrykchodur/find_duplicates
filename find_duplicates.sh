@@ -1,5 +1,35 @@
 #!/usr/bin/env bash
 
+# check if used commands are available
+
+ENVIORMENT_OK=true
+
+if ! command -v shasum &>/dev/null; then
+	ENVIORMENT_OK=false
+	printf "%b" "\e[0;31mError: shasum not available\e[0;0m\n"
+fi
+
+if ! command -v awk &>/dev/null; then
+	ENVIORMENT_OK=false
+	printf "%b" "\e[0;31mError: awk not available\e[0;0m\n"
+fi
+
+if ! command -v shopt &>/dev/null; then
+	ENVIORMENT_OK=false
+	printf "%b" "\e[0;31mError: shopt not available\e[0;0m\n"
+fi
+
+if ! command -v declare &>/dev/null; then
+	ENVIORMENT_OK=false
+	printf "%b" "\e[0;31mError: declare not available\e[0;0m\n"
+fi
+
+
+if [ "$ENVIORMENT_OK" = false ]; then
+	exit 1
+fi
+
+
 shopt -s globstar
 
 INTERACTIVE=false
@@ -102,7 +132,6 @@ for file in "${SEARCH_DIR}"/**/*; do
 		else
 			print_duplicates ${files[$HASH]} $file
 		fi
-
 	else
 		files+=([$HASH]="$file")
 	fi

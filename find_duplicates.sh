@@ -36,6 +36,15 @@ INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
 
+function is_number() {
+	RE='^[0-9]+$'
+	if ! [[ "$1" =~ "$re" ]] ; then
+		return 1
+	else
+		return 0
+	fi
+}
+
 function print_duplicates() {
 	if [ -z "$USE_SECOND_COLOR" ]; then
 		USE_SECOND_COLOR=false
@@ -57,27 +66,29 @@ function print_duplicates() {
 }
 
 function ask_delete() {
-	print_duplicates $1 $2
+	ARGS=( "$@" )
+	print_duplicates "${ARGS[@]}"
 	END=false
 	while [ "$END" = false ]; do
-		read -p $'\e[1;32mDuplicates found. Delete first (f|1) second (s|2) or none (n|0)\e[0m ' -n 1
-		echo ""
-		case "$REPLY" in
-			f|1)
-				rm $1
-				END=true
-				;;
-			s|2)
-				rm $2
-				END=true
-				;;
-			n|0)
-				END=true
-				;;
-			*)
-				echo -e "\e[0;31mInvalid answer\e[0m"
-				;;
-		esac
+		END=true
+
+		read -p $'\e[1;32mDuplicates found. Enter numbers of files to delete (press enter for none)\e[0m '
+
+		for NUMBER in $REPLY; do
+			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then
+				echo -e "\e[0;31mInvalid answer: $NUMBER\e[0m"
+				END=false
+			fi
+		done
+
+		if [ "$END" = false ]; then
+			continue
+		fi
+
+		for NUMBER in $REPLY; do
+			NUMBER=$(( NUMBER - 1 ))
+			rm "${ARGS[NUMBER]}"
+		done
 	done
 }
 
@@ -121,11 +132,6 @@ if [ "$HELP" = true ]; then
 	exit 0
 fi
 
-# TODO: add interactive mode
-if [ "$INTERACTIVE" = true ]; then
-	echo "Error: interactive not working"
-	exit 1
-fi
 
 # list of file paths indexed using hash value
 # every array element is string containing paths
@@ -158,4 +164,13 @@ for file in "${SEARCH_DIR}"/**/*; do
 	files[$HASH]="${files[$HASH]} '$file'"
 done
 
-print_file_duplicates
+if [ "$INTERACTIVE" = true ]; then
+	for file_list_string in "${files[@]}"; do
+		eval "file_list=( ${file_list_string} )"
+		if [ "${#file_list[@]}" -ne 1 ]; then
+			ask_delete "${file_list[@]}"
+		fi
+	done
+else
+	print_file_duplicates
+fi

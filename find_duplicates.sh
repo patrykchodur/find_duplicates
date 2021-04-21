@@ -33,7 +33,7 @@ fi
 shopt -s globstar
 
 INTERACTIVE=false
-SEARCH_DIR="$PWD"
+SEARCH_DIR="."
 HELP=false
 
 function print_duplicates() {
@@ -121,13 +121,32 @@ if [ "$HELP" = true ]; then
 	exit 0
 fi
 
-declare -A files
-
 # TODO: add interactive mode
 if [ "$INTERACTIVE" = true ]; then
 	echo "Error: interactive not working"
 	exit 1
 fi
+
+# list of file paths indexed using hash value
+# every array element is string containing paths
+declare -A files
+
+function print_file_duplicates() {
+	for file_list_string in "${files[@]}"; do
+		eval "file_list=( ${file_list_string} )"
+		if [ "${#file_list[@]}" -ne 1 ]; then
+			print_duplicates "${file_list[@]}"
+		fi
+	done
+}
+
+function exit_abnormally() {
+	echo
+	print_file_duplicates
+	exit 1
+}
+
+trap exit_abnormally SIGINT
 
 for file in "${SEARCH_DIR}"/**/*; do
 	if ! [ -f "$file" ]; then
@@ -139,9 +158,4 @@ for file in "${SEARCH_DIR}"/**/*; do
 	files[$HASH]="${files[$HASH]} '$file'"
 done
 
-for file_list_string in "${files[@]}"; do
-	eval "file_list=( ${file_list_string} )"
-	if [ "${#file_list[@]}" -ne 1 ]; then
-		print_duplicates "${file_list[@]}"
-	fi
-done
+print_file_duplicates

@@ -123,6 +123,12 @@ fi
 
 declare -A files
 
+# TODO: add interactive mode
+if [ "$INTERACTIVE" = true ]; then
+	echo "Error: interactive not working"
+	exit 1
+fi
+
 for file in "${SEARCH_DIR}"/**/*; do
 	if ! [ -f "$file" ]; then
 		continue
@@ -130,13 +136,12 @@ for file in "${SEARCH_DIR}"/**/*; do
 
 	HASH=$(shasum "$file" | awk '{print $1}')
 
-	if [ ${files[$HASH]+_} ]; then
-		if [ "$INTERACTIVE" = "true" ]; then
-			ask_delete ${files[$HASH]} $file
-		else
-			print_duplicates ${files[$HASH]} $file
-		fi
-	else
-		files+=([$HASH]="$file")
+	files[$HASH]="${files[$HASH]} '$file'"
+done
+
+for file_list_string in "${files[@]}"; do
+	eval "file_list=( ${file_list_string} )"
+	if [ "${#file_list[@]}" -ne 1 ]; then
+		print_duplicates "${file_list[@]}"
 	fi
 done

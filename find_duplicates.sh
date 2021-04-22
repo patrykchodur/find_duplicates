@@ -45,7 +45,14 @@ function is_number() {
 	fi
 }
 
-function print_duplicates() {
+# Function takes names of duplicated files
+# Variable $USE_NUMBERS should be set to either "true" or "false"
+function print_duplicates_internal() {
+	if [ -z "$USE_NUMBERS" ]; then
+		echo "Warning: \$USE_NUMBERS not specified. Using default"
+		USE_NUMBERS=false
+	fi
+
 	if [ -z "$USE_SECOND_COLOR" ]; then
 		USE_SECOND_COLOR=false
 	fi
@@ -58,16 +65,33 @@ function print_duplicates() {
 		USE_SECOND_COLOR=true
 	fi
 
+	ITER=1
 	for ARG in "$@"; do
-		echo "$ARG"
+		if [ "$USE_NUMBERS" = true ]; then
+			echo "$ITER) $ARG"
+		else
+			echo "$ARG"
+		fi
+		ITER=$(( $ITER + 1 ))
 	done
 
 	printf "%b" "\e[0m"
+	unset USE_NUMBERS
+}
+
+function print_duplicates() {
+	USE_NUMBERS=false
+	print_duplicates_internal "$@"
+}
+
+function print_duplicates_with_numbers() {
+	USE_NUMBERS=true
+	print_duplicates_internal "$@"
 }
 
 function ask_delete() {
 	ARGS=( "$@" )
-	print_duplicates "${ARGS[@]}"
+	print_duplicates_with_numbers "${ARGS[@]}"
 	END=false
 	while [ "$END" = false ]; do
 		END=true

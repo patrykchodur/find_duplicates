@@ -84,8 +84,10 @@ function print_duplicates_internal() {
 	unset USE_NUMBERS
 }
 
+ALWAYS_USE_NUMBER=false
+
 function print_duplicates() {
-	USE_NUMBERS=false
+	USE_NUMBERS="$ALWAYS_USE_NUMBER"
 	print_duplicates_internal "$@"
 }
 
@@ -129,6 +131,7 @@ function print_usage() {
 	echo
 	echo "   Options:"
 	echo "     -i         ask user to delete duplicated files"
+	echo "     -n         always display file number"
 	echo "     -h         display this help"
 }
 
@@ -140,10 +143,13 @@ INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
 
-while getopts ":ih" OPTION; do
+while getopts ":ihn" OPTION; do
 	case "$OPTION" in
 		i)
 			INTERACTIVE=true
+			;;
+		n)
+			ALWAYS_USE_NUMBER=true
 			;;
 		h)
 			HELP=true

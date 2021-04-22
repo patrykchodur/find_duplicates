@@ -270,19 +270,27 @@ for FILE in "${SEARCH_DIR}"/**/*; do
 done
 
 PROGRESS_ITER=0
-PROGRESS_DISPLAYED=0
-PROGRESS_RESOLUTION=20
 
 function update_progress() {
 	if [[ "$PROGRESS_BAR" = false ]]; then
 		return 0
 	fi
+
+	PROGRESS_RESOLUTION=20
+
+	if [[ -z "$PROGRESS_DISPLAYED" ]]; then
+		PROGRESS_DISPLAYED=0
+		printf "Progress: "
+	fi
+
 	PROGRESS_TO_DRAW=$((PROGRESS_ITER * PROGRESS_RESOLUTION / FILES_NUMBER - PROGRESS_DISPLAYED))
 	if [[ "$PROGRESS_TO_DRAW" -gt 0 ]]; then
 		for i in $(seq "$PROGRESS_TO_DRAW"); do
 			printf "#"
 		done
+
 		PROGRESS_DISPLAYED=$((PROGRESS_DISPLAYED + PROGRESS_TO_DRAW))
+
 		if [[ "$PROGRESS_DISPLAYED" -eq "$PROGRESS_RESOLUTION" ]]; then
 			printf " done!\n"
 		fi

@@ -222,6 +222,12 @@ if [ "$TTY_OUTPUT" = false ] && [ "$INTERACTIVE" = true ]; then
 	exit 1
 fi
 
+if [ "$TTY_OUTPUT" = false ] && [ "$PROGRESS_BAR" = true ]; then
+	print_error "progress bar is available only when using terminal output"
+	print_usage $0
+	exit 1
+fi
+
 # List of file paths indexed using hash value.
 # Every array element is a string containing paths in single quotes ('').
 declare -A FILES
@@ -272,28 +278,16 @@ done
 PROGRESS_ITER=0
 
 function update_progress() {
-	if [[ "$PROGRESS_BAR" = false ]]; then
+	if [[ "$PROGRESS_BAR" = false ]] || [[ "$DONE_DISPLAYED" ]]; then
 		return 0
 	fi
 
-	PROGRESS_RESOLUTION=20
+	PROGRESS_PERCENT=$((PROGRESS_ITER * 100 / FILES_NUMBER))
+	printf "%bProgress: %s%%" "\e[G" "$PROGRESS_PERCENT"
 
-	if [[ -z "$PROGRESS_DISPLAYED" ]]; then
-		PROGRESS_DISPLAYED=0
-		printf "Progress: "
-	fi
-
-	PROGRESS_TO_DRAW=$((PROGRESS_ITER * PROGRESS_RESOLUTION / FILES_NUMBER - PROGRESS_DISPLAYED))
-	if [[ "$PROGRESS_TO_DRAW" -gt 0 ]]; then
-		for i in $(seq "$PROGRESS_TO_DRAW"); do
-			printf "#"
-		done
-
-		PROGRESS_DISPLAYED=$((PROGRESS_DISPLAYED + PROGRESS_TO_DRAW))
-
-		if [[ "$PROGRESS_DISPLAYED" -eq "$PROGRESS_RESOLUTION" ]]; then
-			printf " done!\n"
-		fi
+	if [[ "$PROGRESS_PERCENT" -eq 100 ]] && [[ -z "$DONE_DISPLAYED" ]]; then
+		printf " Done!\n"
+		DONE_DISPLAYED=true
 	fi
 }
 

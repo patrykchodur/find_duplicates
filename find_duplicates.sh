@@ -17,9 +17,14 @@ function print_debug() {
 # check if used commands are available
 ENVIORMENT_OK=true
 
-if ! command -v shasum &>/dev/null; then
-	ENVIORMENT_OK=false
-	print_error "shasum not available"
+if command -v openssl &>/dev/null; then
+	USE_OPENSSL=true
+else
+	USE_OPENSSL=false
+	if ! command -v shasum &>/dev/null; then
+		ENVIORMENT_OK=false
+		print_error "openssl or shasum not available"
+	fi
 fi
 
 if ! command -v awk &>/dev/null; then
@@ -191,7 +196,7 @@ declare -A FILES
 
 function print_file_duplicates() {
 	for FILE_LIST_STRING in "${FILES[@]}"; do
-		eval "FILE_LIST=( ${FILE_LIST_STRING} )"
+		eval "FILE_LIST=( $FILE_LIST_STRING )"
 		if [ "${#FILE_LIST[@]}" -ne 1 ]; then
 			print_duplicates "${FILE_LIST[@]}"
 		fi
@@ -222,13 +227,17 @@ shopt -s globstar
 
 for FILE in "${SEARCH_DIR}"/**/*; do
 	# saddly globstar will give directories too
-	if ! [ -f "$FILE" ]; then
+	if ! [[ -f "$FILE" ]]; then
 		continue
 	fi
 
-	HASH=$(shasum "$FILE" | awk '{print $1}')
+	if [[ "$USE_OPENSSL" = true ]]; then
+		HASH=$(openssl sha1 -r "$FILE" | awk '{print $1}')
+	else
+		HASH=$(shasum "$FILE" | awk '{print $1}')
+	fi
 
-	FILES[$HASH]="${FILES[$HASH]} '$FILE'"
+	FILES[$HASH]="${FILES[$HASH]} '${FILE//\'/\'\\\'\'}'"
 done
 
 # Disable printing all files after ctrl-c

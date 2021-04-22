@@ -159,6 +159,7 @@ function print_usage() {
 	echo "   Options:"
 	echo "     -i         ask user to delete duplicated files"
 	echo "     -n         always display file number"
+	echo "     -p         display progress bar"
 	echo "     -h         display this help"
 }
 
@@ -169,14 +170,18 @@ function print_usage() {
 INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
+PROGRESS_BAR=false
 
-while getopts ":ihn" OPTION; do
+while getopts ":inph" OPTION; do
 	case "$OPTION" in
 		i)
 			INTERACTIVE=true
 			;;
 		n)
 			ALWAYS_USE_NUMBER=true
+			;;
+		p)
+			PROGRESS_BAR=true
 			;;
 		h)
 			HELP=true
@@ -253,6 +258,37 @@ trap exit_abnormally SIGINT
 
 shopt -s globstar
 
+# it has to be done the same way as main loop
+FILES_NUMBER=0
+
+for FILE in "${SEARCH_DIR}"/**/*; do
+	# saddly globstar will give directories too
+	if ! [[ -f "$FILE" ]]; then
+		continue
+	fi
+	FILES_NUMBER=$((FILES_NUMBER + 1))
+done
+
+PROGRESS_ITER=0
+PROGRESS_DISPLAYED=0
+PROGRESS_RESOLUTION=20
+
+function update_progress() {
+	if [[ "$PROGRESS_BAR" = false ]]; then
+		return 0
+	fi
+	PROGRESS_TO_DRAW=$((PROGRESS_ITER * PROGRESS_RESOLUTION / FILES_NUMBER - PROGRESS_DISPLAYED))
+	if [[ "$PROGRESS_TO_DRAW" -gt 0 ]]; then
+		for i in $(seq "$PROGRESS_TO_DRAW"); do
+			printf "#"
+		done
+		PROGRESS_DISPLAYED=$((PROGRESS_DISPLAYED + PROGRESS_TO_DRAW))
+		if [[ "$PROGRESS_DISPLAYED" -eq "$PROGRESS_RESOLUTION" ]]; then
+			printf " done!\n"
+		fi
+	fi
+}
+
 for FILE in "${SEARCH_DIR}"/**/*; do
 	# saddly globstar will give directories too
 	if ! [[ -f "$FILE" ]]; then
@@ -266,7 +302,15 @@ for FILE in "${SEARCH_DIR}"/**/*; do
 	fi
 
 	FILES[$HASH]="${FILES[$HASH]} '${FILE//\'/\'\\\'\'}'"
+
+	PROGRESS_ITER=$((PROGRESS_ITER + 1))
+	if [[ $((PROGRESS_ITER % 100)) -eq 0 ]]; then
+		update_progress
+	fi
+
 done
+
+update_progress
 
 # Disable printing all files after ctrl-c
 trap - SIGINT

@@ -4,24 +4,32 @@
 
 ENVIORMENT_OK=true
 
+function print_error() {
+	printf "%b" "\e[0;31mError: $1\e[0;0m\n"
+}
+
+function print_warning() {
+	printf "%b" "\e[0;33mWarning: $1\e[0;0m\n"
+}
+
 if ! command -v shasum &>/dev/null; then
 	ENVIORMENT_OK=false
-	printf "%b" "\e[0;31mError: shasum not available\e[0;0m\n"
+	print_error "shasum not available"
 fi
 
 if ! command -v awk &>/dev/null; then
 	ENVIORMENT_OK=false
-	printf "%b" "\e[0;31mError: awk not available\e[0;0m\n"
+	print_error "awk not available"
 fi
 
 if ! command -v shopt &>/dev/null; then
 	ENVIORMENT_OK=false
-	printf "%b" "\e[0;31mError: shopt not available\e[0;0m\n"
+	print_error "shopt not available"
 fi
 
 if ! command -v declare &>/dev/null; then
 	ENVIORMENT_OK=false
-	printf "%b" "\e[0;31mError: declare not available\e[0;0m\n"
+	print_error "declare not available"
 fi
 
 
@@ -37,8 +45,7 @@ SEARCH_DIR="."
 HELP=false
 
 function is_number() {
-	RE='^[0-9]+$'
-	if ! [[ "$1" =~ "$re" ]] ; then
+	if ! [[ "$1" =~ ^[0-9]+$ ]] ; then
 		return 1
 	else
 		return 0
@@ -100,7 +107,7 @@ function ask_delete() {
 
 		for NUMBER in $REPLY; do
 			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then
-				echo -e "\e[0;31mInvalid answer: $NUMBER\e[0m"
+				print_error "Invalid answer: $NUMBER"
 				END=false
 			fi
 		done
@@ -170,8 +177,18 @@ function print_file_duplicates() {
 	done
 }
 
+function print_file_duplicates_interactively() {
+	for file_list_string in "${files[@]}"; do
+		eval "file_list=( ${file_list_string} )"
+		if [ "${#file_list[@]}" -ne 1 ]; then
+			ask_delete "${file_list[@]}"
+		fi
+	done
+}
+
 function exit_abnormally() {
 	echo
+	print_warning "exiting abnormally. Printing found duplicates"
 	print_file_duplicates
 	exit 1
 }
@@ -189,12 +206,7 @@ for file in "${SEARCH_DIR}"/**/*; do
 done
 
 if [ "$INTERACTIVE" = true ]; then
-	for file_list_string in "${files[@]}"; do
-		eval "file_list=( ${file_list_string} )"
-		if [ "${#file_list[@]}" -ne 1 ]; then
-			ask_delete "${file_list[@]}"
-		fi
-	done
+	print_file_duplicates_interactively
 else
 	print_file_duplicates
 fi

@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 
-# check if used commands are available
-
-ENVIORMENT_OK=true
-
+# basic error printing functions
 function print_error() {
 	printf "%b" "\e[0;31mError: $1\e[0;0m\n"
 }
@@ -11,6 +8,14 @@ function print_error() {
 function print_warning() {
 	printf "%b" "\e[0;33mWarning: $1\e[0;0m\n"
 }
+
+function print_debug() {
+	printf "%b" "\e[1;33mDebug: $1\e[0;0m\n"
+}
+
+
+# check if used commands are available
+ENVIORMENT_OK=true
 
 if ! command -v shasum &>/dev/null; then
 	ENVIORMENT_OK=false
@@ -36,13 +41,6 @@ fi
 if [ "$ENVIORMENT_OK" = false ]; then
 	exit 1
 fi
-
-
-shopt -s globstar
-
-INTERACTIVE=false
-SEARCH_DIR="."
-HELP=false
 
 function is_number() {
 	if ! [[ "$1" =~ ^[0-9]+$ ]] ; then
@@ -103,7 +101,8 @@ function ask_delete() {
 	while [ "$END" = false ]; do
 		END=true
 
-		read -p $'\e[1;32mDuplicates found. Enter numbers of files to delete (press enter for none)\e[0m '
+		#read -p $'\e[1;32mDuplicates found. Enter numbers of files to delete (press enter for none)\e[0m '
+		read -p 'Duplicates found. Enter numbers of files to delete (press enter for none) '
 
 		for NUMBER in $REPLY; do
 			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then
@@ -136,7 +135,12 @@ function print_usage() {
 # options:
 # -i - remove interactivly
 # -h - help
-while getopts "ih" OPTION; do
+
+INTERACTIVE=false
+SEARCH_DIR="."
+HELP=false
+
+while getopts ":ih" OPTION; do
 	case "$OPTION" in
 		i)
 			INTERACTIVE=true
@@ -145,43 +149,54 @@ while getopts "ih" OPTION; do
 			HELP=true
 			;;
 		*)
+			print_error "illegal option: -$OPTARG"
 			print_usage $0
 			exit 1
 			;;
 	esac
 done
 
-shift $((OPTIND - 1))
-
-if [ -n "$1" ]; then
-	SEARCH_DIR="$1"
-fi
-
-
 if [ "$HELP" = true ]; then
 	print_usage $0
 	exit 0
 fi
 
+# Prepare woring directory
+shift $((OPTIND - 1))
 
-# list of file paths indexed using hash value
-# every array element is string containing paths
-declare -A files
+if [ "$#" -eq 1 ]; then
+	SEARCH_DIR="$1"
+elif [ "$#" -gt 1 ]; then
+	print_error "only one directory can be specified"
+	print_usage $0
+	exit 1
+fi
+
+if ! [ -d "$SEARCH_DIR" ]; then
+	print_error "directory $SEARCH_DIR does not exists"
+	print_usage $0
+	exit 1
+fi
+
+
+# List of file paths indexed using hash value.
+# Every array element is a string containing paths in single quotes ('').
+declare -A FILES
 
 function print_file_duplicates() {
-	for file_list_string in "${files[@]}"; do
-		eval "file_list=( ${file_list_string} )"
-		if [ "${#file_list[@]}" -ne 1 ]; then
-			print_duplicates "${file_list[@]}"
+	for FILE_LIST_STRING in "${FILES[@]}"; do
+		eval "FILE_LIST=( ${FILE_LIST_STRING} )"
+		if [ "${#FILE_LIST[@]}" -ne 1 ]; then
+			print_duplicates "${FILE_LIST[@]}"
 		fi
 	done
 }
 
 function print_file_duplicates_interactively() {
-	for file_list_string in "${files[@]}"; do
-		eval "file_list=( ${file_list_string} )"
-		if [ "${#file_list[@]}" -ne 1 ]; then
-			ask_delete "${file_list[@]}"
+	for FILE_LIST_STRING in "${FILES[@]}"; do
+		eval "FILE_LIST=( ${FILE_LIST_STRING} )"
+		if [ "${#FILE_LIST[@]}" -ne 1 ]; then
+			ask_delete "${FILE_LIST[@]}"
 		fi
 	done
 }
@@ -193,19 +208,24 @@ function exit_abnormally() {
 	exit 1
 }
 
+# Calculating all hashes can take some time, so the user may interrupt the process.
+# The script will display already found duplicates in such case.
 trap exit_abnormally SIGINT
 
-for file in "${SEARCH_DIR}"/**/*; do
-	if ! [ -f "$file" ]; then
+shopt -s globstar
+
+for FILE in "${SEARCH_DIR}"/**/*; do
+	# saddly globstar will give directories too
+	if ! [ -f "$FILE" ]; then
 		continue
 	fi
 
-	HASH=$(shasum "$file" | awk '{print $1}')
+	HASH=$(shasum "$FILE" | awk '{print $1}')
 
-	files[$HASH]="${files[$HASH]} '$file'"
+	FILES[$HASH]="${FILES[$HASH]} '$FILE'"
 done
 
-# disable printing all files after ctrl-c
+# Disable printing all files after ctrl-c
 trap - SIGINT
 
 if [ "$INTERACTIVE" = true ]; then

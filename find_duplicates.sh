@@ -1,16 +1,33 @@
 #!/usr/bin/env bash
 
+TTY_OUTPUT=false
+if [ -t 1 ]; then
+	TTY_OUTPUT=true
+fi
+
 # basic error printing functions
 function print_error() {
-	printf "%b" "\e[0;31mError: $1\e[0;0m\n"
+	if [ "$TTY_OUTPUT" = true ]; then
+		printf "%b" "\e[0;31mError: $1\e[0;0m\n"
+	else
+		printf "%b" "Error: $1\n"
+	fi
 }
 
 function print_warning() {
-	printf "%b" "\e[0;33mWarning: $1\e[0;0m\n"
+	if [ "$TTY_OUTPUT" = true ]; then
+		printf "%b" "\e[0;33mWarning: $1\e[0;0m\n"
+	else
+		printf "%b" "Warning: $1\n"
+	fi
 }
 
 function print_debug() {
-	printf "%b" "\e[1;33mDebug: $1\e[0;0m\n"
+	if [ "$TTY_OUTPUT" = true ]; then
+		printf "%b" "\e[1;33mDebug: $1\e[0;0m\n"
+	else
+		printf "%b" "Debug: $1\n"
+	fi
 }
 
 
@@ -37,7 +54,6 @@ if ! command -v declare &>/dev/null; then
 	print_error "declare not available"
 fi
 
-
 if [ "$ENVIORMENT_OK" = false ]; then
 	exit 1
 fi
@@ -54,7 +70,7 @@ function is_number() {
 # Variable $USE_NUMBERS should be set to either "true" or "false"
 function print_duplicates_internal() {
 	if [ -z "$USE_NUMBERS" ]; then
-		echo "Warning: \$USE_NUMBERS not specified. Using default"
+		print_warning "\$USE_NUMBERS not specified. Using default"
 		USE_NUMBERS=false
 	fi
 
@@ -62,12 +78,14 @@ function print_duplicates_internal() {
 		USE_SECOND_COLOR=false
 	fi
 
-	if [ "$USE_SECOND_COLOR" = true ]; then
-		printf "%b" "\e[0;32m"
-		USE_SECOND_COLOR=false
-	else
-		printf "%b" "\e[0;36m"
-		USE_SECOND_COLOR=true
+	if [ "$TTY_OUTPUT" = true ]; then
+		if [ "$USE_SECOND_COLOR" = true ]; then
+			printf "%b" "\e[0;32m"
+			USE_SECOND_COLOR=false
+		else
+			printf "%b" "\e[0;36m"
+			USE_SECOND_COLOR=true
+		fi
 	fi
 
 	ITER=1
@@ -80,7 +98,12 @@ function print_duplicates_internal() {
 		ITER=$(( $ITER + 1 ))
 	done
 
-	printf "%b" "\e[0m"
+	if [ "$TTY_OUTPUT" = true ]; then
+		printf "%b" "\e[0m"
+	else
+		printf "%b" "\n"
+	fi
+
 	unset USE_NUMBERS
 }
 
@@ -103,8 +126,7 @@ function ask_delete() {
 	while [ "$END" = false ]; do
 		END=true
 
-		#read -p $'\e[1;32mDuplicates found. Enter numbers of files to delete (press enter for none)\e[0m '
-		read -p 'Duplicates found. Enter numbers of files to delete (press enter for none) '
+		read -p "Duplicates found. Enter numbers of files to delete (press enter for none) "
 
 		for NUMBER in $REPLY; do
 			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then
@@ -184,6 +206,11 @@ if ! [ -d "$SEARCH_DIR" ]; then
 	exit 1
 fi
 
+if [ "$TTY_OUTPUT" = false ] && [ "$INTERACTIVE" = true ]; then
+	print_error "interactive mode is available only when using terminal output"
+	print_usage $0
+	exit 1
+fi
 
 # List of file paths indexed using hash value.
 # Every array element is a string containing paths in single quotes ('').
@@ -208,8 +235,9 @@ function print_file_duplicates_interactively() {
 }
 
 function exit_abnormally() {
-	echo
+	[ "$TTY_OUTPUT" = true ] && echo
 	print_warning "exiting abnormally. Printing found duplicates:"
+	[ "$TTY_OUTPUT" = false ] && echo
 	print_file_duplicates
 	exit 1
 }

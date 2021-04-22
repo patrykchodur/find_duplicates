@@ -188,7 +188,7 @@ function print_file_duplicates_interactively() {
 
 function exit_abnormally() {
 	echo
-	print_warning "exiting abnormally. Printing found duplicates"
+	print_warning "exiting abnormally. Printing found duplicates:"
 	print_file_duplicates
 	exit 1
 }
@@ -204,6 +204,9 @@ for file in "${SEARCH_DIR}"/**/*; do
 
 	files[$HASH]="${files[$HASH]} '$file'"
 done
+
+# disable printing all files after ctrl-c
+trap - SIGINT
 
 if [ "$INTERACTIVE" = true ]; then
 	print_file_duplicates_interactively

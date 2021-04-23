@@ -1,32 +1,36 @@
 #!/usr/bin/env bash
 
-TTY_OUTPUT=false
-if [ -t 1 ]; then
-	TTY_OUTPUT=true
+TTY_STDOUT=false
+if [[ -t 1 ]]; then
+	TTY_STDOUT=true
+fi
+TTY_STDERR=false
+if [[ -t 2 ]]; then
+	TTY_STDERR=true
 fi
 
 # basic error printing functions
 function print_error() {
-	if [ "$TTY_OUTPUT" = true ]; then
-		printf "%b" "\e[0;31mError: $1\e[0;0m\n"
+	if [ "$TTY_STDERR" = true ]; then
+		printf "%b" "\e[0;31mError: $1\e[0;0m\n" >&2
 	else
-		printf "%b" "Error: $1\n"
+		printf "%b" "Error: $1\n" >&2
 	fi
 }
 
 function print_warning() {
-	if [ "$TTY_OUTPUT" = true ]; then
-		printf "%b" "\e[0;33mWarning: $1\e[0;0m\n"
+	if [ "$TTY_STDERR" = true ]; then
+		printf "%b" "\e[0;33mWarning: $1\e[0;0m\n" >&2
 	else
-		printf "%b" "Warning: $1\n"
+		printf "%b" "Warning: $1\n" >&2
 	fi
 }
 
 function print_debug() {
-	if [ "$TTY_OUTPUT" = true ]; then
-		printf "%b" "\e[1;33mDebug: $1\e[0;0m\n"
+	if [ "$TTY_STDERR" = true ]; then
+		printf "%b" "\e[1;33mDebug: $1\e[0;0m\n" >&2
 	else
-		printf "%b" "Debug: $1\n"
+		printf "%b" "Debug: $1\n" >&2
 	fi
 }
 
@@ -78,7 +82,7 @@ function print_duplicates_internal() {
 		USE_SECOND_COLOR=false
 	fi
 
-	if [ "$TTY_OUTPUT" = true ]; then
+	if [ "$TTY_STDOUT" = true ]; then
 		if [ "$USE_SECOND_COLOR" = true ]; then
 			printf "%b" "\e[0;32m"
 			USE_SECOND_COLOR=false
@@ -98,7 +102,7 @@ function print_duplicates_internal() {
 		ITER=$(( $ITER + 1 ))
 	done
 
-	if [ "$TTY_OUTPUT" = true ]; then
+	if [ "$TTY_STDOUT" = true ]; then
 		printf "%b" "\e[0m"
 	else
 		printf "%b" "\n"
@@ -126,7 +130,7 @@ function ask_delete() {
 	while [ "$END" = false ]; do
 		END=true
 
-		read -p "Duplicates found. Enter numbers of files to delete (press enter for none) "
+		read -p "Duplicates found. Enter numbers of files to delete (press enter for none) " 2>&1
 
 		for NUMBER in $REPLY; do
 			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then
@@ -147,15 +151,15 @@ function ask_delete() {
 }
 
 function print_usage() {
-	echo "Usage: $1 [OPTION]... [directory]"
-	echo "   Find duplicated files and optionally delete them."
-	echo "   If no directory is provided, current working directory will be used."
-	echo
-	echo "   Options:"
-	echo "     -i         ask user to delete duplicated files"
-	echo "     -n         always display file number"
-	echo "     -p         display progress bar"
-	echo "     -h         display this help"
+	>&2 echo "Usage: $1 [OPTION]... [directory]"
+	>&2 echo "   Find duplicated files and optionally delete them."
+	>&2 echo "   If no directory is provided, current working directory will be used."
+	>&2 echo
+	>&2 echo "   Options:"
+	>&2 echo "     -i         ask user to delete duplicated files"
+	>&2 echo "     -n         always display file number"
+	>&2 echo "     -p         display progress bar"
+	>&2 echo "     -h         display this help"
 }
 
 # options:
@@ -211,13 +215,13 @@ if ! [ -d "$SEARCH_DIR" ]; then
 	exit 1
 fi
 
-if [ "$TTY_OUTPUT" = false ] && [ "$INTERACTIVE" = true ]; then
+if [ "$TTY_STDOUT" = false ] && [ "$INTERACTIVE" = true ]; then
 	print_error "interactive mode is available only when using terminal output"
 	print_usage $0
 	exit 1
 fi
 
-if [ "$TTY_OUTPUT" = false ] && [ "$PROGRESS_BAR" = true ]; then
+if [ "$TTY_STDOUT" = false ] && [ "$PROGRESS_BAR" = true ]; then
 	print_error "progress bar is available only when using terminal output"
 	print_usage $0
 	exit 1
@@ -246,9 +250,9 @@ function print_file_duplicates_interactively() {
 }
 
 function exit_abnormally() {
-	[ "$TTY_OUTPUT" = true ] && echo
+	[ "$TTY_STDERR" = true ] && echo
 	print_warning "exiting abnormally. Printing found duplicates:"
-	[ "$TTY_OUTPUT" = false ] && echo
+	[ "$TTY_STDERR" = false ] && echo
 	print_file_duplicates
 	exit 1
 }

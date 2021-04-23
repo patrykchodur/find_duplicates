@@ -171,6 +171,7 @@ function print_usage() {
 	>&2 echo "   If no directory is provided, current working directory will be used."
 	>&2 echo
 	>&2 echo "   Options:"
+	>&2 echo "     -a         search for hidden files and directories"
 	>&2 echo "     -i         ask user to delete duplicated files"
 	>&2 echo "     -n         always display file number"
 	>&2 echo "     -p         display progress bar"
@@ -185,9 +186,13 @@ INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
 PROGRESS_BAR=false
+ALL_FILES=false
 
-while getopts ":inph" OPTION; do
+while getopts ":ainph" OPTION; do
 	case "$OPTION" in
+		a)
+			ALL_FILES=true
+			;;
 		i)
 			INTERACTIVE=true
 			;;
@@ -277,7 +282,11 @@ function exit_abnormally() {
 trap exit_abnormally SIGINT
 
 function list_files() {
-	find "$1" -not -path '*/\.[^./]*' -type f -print0
+	if [[ "$ALL_FILES" = true ]]; then
+		find "$1" -type f -print0
+	else
+		find "$1" -not -path '*/\.[^./]*' -type f -print0
+	fi
 }
 
 # it has to be done the same way as main loop

@@ -276,18 +276,16 @@ function exit_abnormally() {
 # The script will display already found duplicates in such case.
 trap exit_abnormally SIGINT
 
-shopt -s globstar
+function list_files() {
+	find "$1" -not -path '*/\.[^./]*' -type f -print0
+}
 
 # it has to be done the same way as main loop
 FILES_NUMBER=0
 
-for FILE in "${SEARCH_DIR}"/**/*; do
-	# saddly globstar will give directories too
-	if ! [[ -f "$FILE" ]]; then
-		continue
-	fi
+while IFS= read -r -d '' FILE; do
 	FILES_NUMBER=$((FILES_NUMBER + 1))
-done
+done < <(list_files "$SEARCH_DIR")
 
 PROGRESS_ITER=0
 
@@ -305,11 +303,7 @@ function update_progress() {
 	fi
 }
 
-for FILE in "${SEARCH_DIR}"/**/*; do
-	# saddly globstar will give directories too
-	if ! [[ -f "$FILE" ]]; then
-		continue
-	fi
+while IFS= read -r -d '' FILE; do
 
 	if [[ "$USE_OPENSSL" = true ]]; then
 		HASH=$(openssl sha1 -r "$FILE" | awk '{print $1}')
@@ -324,7 +318,7 @@ for FILE in "${SEARCH_DIR}"/**/*; do
 		update_progress
 	fi
 
-done
+done < <(list_files "$SEARCH_DIR")
 
 update_progress
 

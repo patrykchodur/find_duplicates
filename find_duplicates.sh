@@ -171,7 +171,7 @@ function print_usage() {
 	>&2 echo "   If no directory is provided, current working directory will be used."
 	>&2 echo
 	>&2 echo "   Options:"
-	>&2 echo "     -a         search for hidden files and directories"
+	>&2 echo "     -a         include hidden files and directories"
 	>&2 echo "     -i         ask user to delete duplicated files"
 	>&2 echo "     -n         always display file number"
 	>&2 echo "     -p         display progress bar"

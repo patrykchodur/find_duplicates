@@ -5,14 +5,12 @@ It uses `sha-1` hashing algorythm to calculate hash of files.
 
 ## Requirements
 
-This utility uses the following commands:
+This utility requires `bash` version 4 or higher and uses the following commands:
 
 - `awk`
-- `shasum`
-- `declare`
-- `shopt`
+- `shasum` or `openssl`
 
-The presence of all required commands is checked at the beginning of the script, so if
+The presence of required commands is checked at the beginning of the script, so if
 any command is not available an error message is displayed.
 
 ## Usage

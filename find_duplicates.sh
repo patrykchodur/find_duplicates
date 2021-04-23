@@ -49,14 +49,9 @@ if ! command -v awk &>/dev/null; then
 	print_error "awk not available"
 fi
 
-if ! command -v shopt &>/dev/null; then
+if [[ "$(echo "$BASH_VERSION" | cut -b 1)" -lt 4 ]]; then
 	ENVIORMENT_OK=false
-	print_error "shopt not available"
-fi
-
-if ! command -v declare &>/dev/null; then
-	ENVIORMENT_OK=false
-	print_error "declare not available"
+	print_error "this script requires bash version 4 or above"
 fi
 
 if [ "$ENVIORMENT_OK" = false ]; then

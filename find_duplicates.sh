@@ -123,6 +123,15 @@ function print_duplicates_with_numbers() {
 	print_duplicates_internal "$@"
 }
 
+function open_file() {
+	SYSTEM_NAME="$(uname -s)"
+	case "$SYSTEM_NAME" in
+		Linux*) xdg-open "$1";;
+		Darwin*) open "$1";;
+		*) print_error "open not supported on platform $SYSTEM_NAME"
+	esac
+}
+
 function ask_delete() {
 	ARGS=( "$@" )
 	print_duplicates_with_numbers "${ARGS[@]}"
@@ -130,7 +139,13 @@ function ask_delete() {
 	while [ "$END" = false ]; do
 		END=true
 
-		read -p "Duplicates found. Enter numbers of files to delete (press enter for none) " 2>&1
+		read -p "Duplicates found. Enter numbers of files to delete, type 'o' to open, or press enter for no action " 2>&1
+
+		if [[ "$REPLY" =~ ^[[:space:]]*o[[:space:]]*$ ]]; then
+			END=false
+			open_file "${ARGS[0]}"
+			continue
+		fi
 
 		for NUMBER in $REPLY; do
 			if ! is_number "$NUMBER" || [ "$NUMBER" -gt "${#ARGS[@]}" ] || [ "$NUMBER" -lt 1 ]; then

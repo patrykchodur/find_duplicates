@@ -171,6 +171,7 @@ function print_usage() {
 	>&2 echo "   If no directory is provided, current working directory will be used."
 	>&2 echo
 	>&2 echo "   Options:"
+	>&2 echo "     -a         include hidden files and directories"
 	>&2 echo "     -i         ask user to delete duplicated files"
 	>&2 echo "     -n         always display file number"
 	>&2 echo "     -p         display progress bar"
@@ -185,9 +186,13 @@ INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
 PROGRESS_BAR=false
+ALL_FILES=false
 
-while getopts ":inph" OPTION; do
+while getopts ":ainph" OPTION; do
 	case "$OPTION" in
+		a)
+			ALL_FILES=true
+			;;
 		i)
 			INTERACTIVE=true
 			;;
@@ -276,18 +281,20 @@ function exit_abnormally() {
 # The script will display already found duplicates in such case.
 trap exit_abnormally SIGINT
 
-shopt -s globstar
+function list_files() {
+	if [[ "$ALL_FILES" = true ]]; then
+		find "$1" -type f -print0
+	else
+		find "$1" -not -path '*/\.[^./]*' -type f -print0
+	fi
+}
 
 # it has to be done the same way as main loop
 FILES_NUMBER=0
 
-for FILE in "${SEARCH_DIR}"/**/*; do
-	# saddly globstar will give directories too
-	if ! [[ -f "$FILE" ]]; then
-		continue
-	fi
+while IFS= read -r -d '' FILE; do
 	FILES_NUMBER=$((FILES_NUMBER + 1))
-done
+done < <(list_files "$SEARCH_DIR")
 
 PROGRESS_ITER=0
 
@@ -305,11 +312,7 @@ function update_progress() {
 	fi
 }
 
-for FILE in "${SEARCH_DIR}"/**/*; do
-	# saddly globstar will give directories too
-	if ! [[ -f "$FILE" ]]; then
-		continue
-	fi
+while IFS= read -r -d '' FILE; do
 
 	if [[ "$USE_OPENSSL" = true ]]; then
 		HASH=$(openssl sha1 -r "$FILE" | awk '{print $1}')
@@ -324,7 +327,7 @@ for FILE in "${SEARCH_DIR}"/**/*; do
 		update_progress
 	fi
 
-done
+done < <(list_files "$SEARCH_DIR")
 
 update_progress
 

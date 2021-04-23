@@ -159,6 +159,7 @@ function print_usage() {
 	echo "   Options:"
 	echo "     -i         ask user to delete duplicated files"
 	echo "     -n         always display file number"
+	echo "     -p         display progress bar"
 	echo "     -h         display this help"
 }
 
@@ -169,14 +170,18 @@ function print_usage() {
 INTERACTIVE=false
 SEARCH_DIR="."
 HELP=false
+PROGRESS_BAR=false
 
-while getopts ":ihn" OPTION; do
+while getopts ":inph" OPTION; do
 	case "$OPTION" in
 		i)
 			INTERACTIVE=true
 			;;
 		n)
 			ALWAYS_USE_NUMBER=true
+			;;
+		p)
+			PROGRESS_BAR=true
 			;;
 		h)
 			HELP=true
@@ -217,6 +222,12 @@ if [ "$TTY_OUTPUT" = false ] && [ "$INTERACTIVE" = true ]; then
 	exit 1
 fi
 
+if [ "$TTY_OUTPUT" = false ] && [ "$PROGRESS_BAR" = true ]; then
+	print_error "progress bar is available only when using terminal output"
+	print_usage $0
+	exit 1
+fi
+
 # List of file paths indexed using hash value.
 # Every array element is a string containing paths in single quotes ('').
 declare -A FILES
@@ -253,6 +264,33 @@ trap exit_abnormally SIGINT
 
 shopt -s globstar
 
+# it has to be done the same way as main loop
+FILES_NUMBER=0
+
+for FILE in "${SEARCH_DIR}"/**/*; do
+	# saddly globstar will give directories too
+	if ! [[ -f "$FILE" ]]; then
+		continue
+	fi
+	FILES_NUMBER=$((FILES_NUMBER + 1))
+done
+
+PROGRESS_ITER=0
+
+function update_progress() {
+	if [[ "$PROGRESS_BAR" = false ]] || [[ "$DONE_DISPLAYED" ]]; then
+		return 0
+	fi
+
+	PROGRESS_PERCENT=$((PROGRESS_ITER * 100 / FILES_NUMBER))
+	printf "%bProgress: %s%%" "\e[G" "$PROGRESS_PERCENT"
+
+	if [[ "$PROGRESS_PERCENT" -eq 100 ]] && [[ -z "$DONE_DISPLAYED" ]]; then
+		printf " Done!\n"
+		DONE_DISPLAYED=true
+	fi
+}
+
 for FILE in "${SEARCH_DIR}"/**/*; do
 	# saddly globstar will give directories too
 	if ! [[ -f "$FILE" ]]; then
@@ -266,7 +304,15 @@ for FILE in "${SEARCH_DIR}"/**/*; do
 	fi
 
 	FILES[$HASH]="${FILES[$HASH]} '${FILE//\'/\'\\\'\'}'"
+
+	PROGRESS_ITER=$((PROGRESS_ITER + 1))
+	if [[ $((PROGRESS_ITER % 100)) -eq 0 ]]; then
+		update_progress
+	fi
+
 done
+
+update_progress
 
 # Disable printing all files after ctrl-c
 trap - SIGINT

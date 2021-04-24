@@ -241,7 +241,7 @@ if [ "$TTY_STDOUT" = false ] && [ "$INTERACTIVE" = true ]; then
 	exit 1
 fi
 
-if [ "$TTY_STDOUT" = false ] && [ "$PROGRESS_BAR" = true ]; then
+if [ "$TTY_STDERR" = false ] && [ "$PROGRESS_BAR" = true ]; then
 	print_error "progress bar is available only when using terminal output"
 	print_usage $0
 	exit 1
@@ -304,10 +304,10 @@ function update_progress() {
 	fi
 
 	PROGRESS_PERCENT=$((PROGRESS_ITER * 100 / FILES_NUMBER))
-	printf "%bProgress: %s%%" "\e[G" "$PROGRESS_PERCENT"
+	>&2 printf "%bProgress: %s%%" "\e[G" "$PROGRESS_PERCENT"
 
 	if [[ "$PROGRESS_PERCENT" -eq 100 ]] && [[ -z "$DONE_DISPLAYED" ]]; then
-		printf " Done!\n"
+		>&2 printf " Done!\n"
 		DONE_DISPLAYED=true
 	fi
 }
